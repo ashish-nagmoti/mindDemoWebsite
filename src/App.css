@@ -1,0 +1,178 @@
+/* Custom styles that complement Tailwind CSS */
+
+/* Page overlay for initial animation */
+.page-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--color-mindful-yellow);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Smooth scrolling effect for the entire page */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Main content container */
+.main-content {
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Brain element styling */
+.brain-element {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  will-change: transform;
+  z-index: 30;
+  transition: box-shadow 0.3s ease;
+}
+
+/* Brain container to reserve space */
+.brain-container {
+  position: relative;
+  z-index: 10;
+}
+
+/* Animation for brain element */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Scroll indicator element */
+.scroll-cta {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+  animation: bounce 2s infinite;
+}
+
+.scroll-cta:hover {
+  opacity: 1;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0) translateX(-50%);
+  }
+  40% {
+    transform: translateY(-10px) translateX(-50%);
+  }
+  60% {
+    transform: translateY(-5px) translateX(-50%);
+  }
+}
+
+/* Hero title styling with clip-path support */
+.hero-title {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Gradient text styles */
+.gradient-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(to right, #4F46E5, #10B981);
+}
+
+/* Custom scroll bar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4F46E5;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3730a3;
+}
+
+/* Animation for section elements */
+.animate-in {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* For pages with pinned elements */
+.pin-spacer {
+  width: 100%;
+  position: relative;
+}
+
+/* Enhanced reveal animations for fact items */
+.fact-item {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  backface-visibility: hidden;
+}
+
+.fact-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Resource cards enhanced animation */
+.resource-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  backface-visibility: hidden;
+}
+
+.resource-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Additional animation keyframes for more interesting effects */
+@keyframes fadeSlideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Reveal animation for staggered content */
+.reveal-stagger {
+  opacity: 0;
+}
