@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import './App.css'
+import Brain3DScene from './components/Brain3DScene'
 
 // Register ScrollTrigger plugin
 gsap.registerPlugin(ScrollTrigger)
@@ -9,13 +10,16 @@ gsap.registerPlugin(ScrollTrigger)
 function App() {
   // Add loading state to control initial animations
   const [isLoaded, setIsLoaded] = useState(false);
+  const [brainActivity, setBrainActivity] = useState(0.5);
   
   // References for animated elements
   const headerRef = useRef(null)
   const brainRef = useRef(null)
+  const brain3dRef = useRef(null)
   const factsSectionRef = useRef(null)
   const therapySectionRef = useRef(null)
   const resourcesSectionRef = useRef(null)
+  const selfCareSectionRef = useRef(null)
   const factsContainerRef = useRef(null)
   const mainContentRef = useRef(null)
   const footerRef = useRef(null)
@@ -37,199 +41,232 @@ function App() {
     return () => clearTimeout(loadTimer);
   }, []);
   
+  // Function to create neural activity particles
+  const createNeuronParticles = () => {
+    const brainElement = brainRef.current;
+    if (!brainElement) return;
+    
+    // Create multiple neuron particles
+    for (let i = 0; i < 8; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'neuron-particle';
+      
+      // Random positioning within the brain element
+      const randomX = Math.random() * 100;
+      const randomY = Math.random() * 100;
+      
+      particle.style.left = `${randomX}%`;
+      particle.style.top = `${randomY}%`;
+      
+      // Random animation delay for varied effect
+      particle.style.animationDelay = `${Math.random() * 3}s`;
+      
+      brainElement.appendChild(particle);
+    }
+    
+    // Add wave animation
+    const wave = document.createElement('div');
+    wave.className = 'brain-wave';
+    wave.style.animationDelay = '1s';
+    brainElement.appendChild(wave);
+  };
+  
   useEffect(() => {
-    // Initial page appearance animations with enhanced sequence
-    if (isLoaded) {
-      // Create a master timeline for initial page load animations
-      let masterTl = gsap.timeline();
-      
-      // Start with an overlay fade out effect
-      masterTl.fromTo(".page-overlay", {
-        opacity: 1,
-      }, {
+    if (!isLoaded) return;
+    
+    // Kill any existing ScrollTriggers to prevent duplicates
+    ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+    
+    // Initial page appearance animations
+    let masterTl = gsap.timeline();
+    
+    // Fade out page overlay
+    masterTl.fromTo(".page-overlay", {
+      opacity: 1,
+    }, {
+      opacity: 0,
+      duration: 1.2,
+      ease: "power2.inOut"
+    });
+    
+    // Fade in page wrapper
+    masterTl.fromTo(pageWrapperRef.current, {
+      opacity: 0,
+      scale: 1.05
+    }, {
+      opacity: 1, 
+      scale: 1,
+      duration: 0.8,
+      ease: "power3.out"
+    }, "-=0.7");
+    
+    // Animate header
+    masterTl.fromTo(headerRef.current, {
+      y: -100,
+      opacity: 0
+    }, {
+      y: 0,
+      opacity: 1,
+      duration: 1,
+      ease: "expo.out"
+    }, "-=0.5");
+    
+    // Initial brain appearance
+    if (brainRef.current) {
+      masterTl.fromTo(brainRef.current, {
         opacity: 0,
-        duration: 1.2,
-        ease: "power2.inOut"
-      });
-      
-      // Fade in the page wrapper with a slight scale effect
-      masterTl.fromTo(pageWrapperRef.current, {
-        opacity: 0,
-        scale: 1.05
+        scale: 0.7,
+        rotation: -10
       }, {
-        opacity: 1, 
+        opacity: 1,
         scale: 1,
-        duration: 0.8,
-        ease: "power3.out"
-      }, "-=0.7");
-      
-      // Header animation with a slide down reveal
-      masterTl.fromTo(headerRef.current, {
-        y: -100,
-        opacity: 0
-      }, {
-        y: 0,
-        opacity: 1,
-        duration: 1,
-        ease: "expo.out"
-      }, "-=0.5");
-      
-      // Title animation with a clip-path reveal
-      masterTl.fromTo(heroTitleRef.current, {
-        clipPath: "polygon(0 0, 0 0, 0 100%, 0 100%)",
-        opacity: 0
-      }, {
-        clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
-        opacity: 1,
+        rotation: 0,
         duration: 1.2,
-        ease: "power4.out"
-      }, "-=0.7");
-      
-      // Text paragraph reveal with a fade up
-      masterTl.fromTo(heroTextRef.current, {
-        y: 40,
-        opacity: 0
-      }, {
-        y: 0,
-        opacity: 1,
-        duration: 1,
-        ease: "power3.out"
-      }, "-=0.9");
-      
-      // Buttons reveal with a staggered pop effect
-      masterTl.fromTo(heroButtonsRef.current.children, {
-        scale: 0.8,
-        y: 30,
-        opacity: 0
-      }, {
-        scale: 1,
-        y: 0,
-        opacity: 1,
-        stagger: 0.15,
-        duration: 0.7,
-        ease: "back.out(1.7)"
+        ease: "back.out(1.2)",
+        onComplete: createNeuronParticles
       }, "-=0.8");
       
-      // Scroll indicator fade in and bounce
-      masterTl.fromTo(scrollCtaRef.current, {
-        y: 20,
-        opacity: 0
+      // Set initial position at top right - positioning higher
+      gsap.set(brainRef.current, {
+        position: "fixed",
+        top: "5%",  // Changed from 10% to 5% to position it higher
+        right: "5%",
+        left: "auto",
+        zIndex: 50,
+      });
+      
+      // Define zigzag path coordinates - adjusted first position to be higher
+      const zigzagPath = [
+        { top: "5%", left: "auto", right: "5%" },   // Start: top right (higher position)
+        { top: "30%", left: "10%", right: "auto" }, // Point 1: left
+        { top: "50%", left: "auto", right: "15%" }, // Point 2: right
+        { top: "70%", left: "15%", right: "auto" }, // Point 3: left
+        { top: "90%", left: "auto", right: "10%" }  // End: bottom right
+      ];
+      
+      // Create a sequence of animations for the zigzag path
+      const brainZigzag = gsap.timeline({
+        scrollTrigger: {
+          trigger: document.body,
+          start: "top top",
+          end: "bottom bottom",
+          scrub: 1, // Smooth scrubbing tied to scroll position
+          markers: false, // Change to true for debugging
+          id: "brain-zigzag",
+        }
+      });
+      
+      // Add animations for each path point
+      zigzagPath.forEach((position, index) => {
+        if (index === 0) return; // Skip the first point as it's the initial position
+        
+        // Calculate rotation (alternate between positive and negative)
+        const rotation = index % 2 === 0 ? 5 : -5;
+        
+        // Calculate scale (gradually decrease as it moves down)
+        const scale = 1 - (index * 0.05);
+        
+        // Add to timeline
+        brainZigzag.to(brainRef.current, {
+          top: position.top,
+          left: position.left,
+          right: position.right,
+          rotation: rotation,
+          scale: scale,
+          ease: "power1.inOut",
+          duration: 0.25, // Relative duration within the timeline
+        });
+      });
+    }
+    
+    // Animate hero content
+    masterTl.fromTo(heroTitleRef.current, {
+      clipPath: "polygon(0 0, 0 0, 0 100%, 0 100%)",
+      opacity: 0
+    }, {
+      clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
+      opacity: 1,
+      duration: 1.2,
+      ease: "power4.out"
+    }, "-=0.7");
+    
+    masterTl.fromTo(heroTextRef.current, {
+      y: 40,
+      opacity: 0
+    }, {
+      y: 0,
+      opacity: 1,
+      duration: 1,
+      ease: "power3.out"
+    }, "-=0.9");
+    
+    masterTl.fromTo(heroButtonsRef.current.children, {
+      scale: 0.8,
+      y: 30,
+      opacity: 0
+    }, {
+      scale: 1,
+      y: 0,
+      opacity: 1,
+      stagger: 0.15,
+      duration: 0.7,
+      ease: "back.out(1.7)"
+    }, "-=0.8");
+    
+    masterTl.fromTo(scrollCtaRef.current, {
+      y: 20,
+      opacity: 0
+    }, {
+      y: 0,
+      opacity: 0.7,
+      duration: 1,
+      ease: "power3.out"
+    }, "-=0.5");
+    
+    // 3D Brain animation
+    if (brain3dRef.current) {
+      masterTl.fromTo(brain3dRef.current, {
+        opacity: 0,
+        y: 30
       }, {
+        opacity: 1,
         y: 0,
-        opacity: 0.7,
-        duration: 1,
+        duration: 1.2,
         ease: "power3.out"
       }, "-=0.5");
     }
     
-    // Clear any existing ScrollTriggers to avoid conflicts
-    ScrollTrigger.getAll().forEach(st => st.kill());
-    
-    // BRAIN SETUP AND SCROLL ANIMATION
-    
-    // Position the brain at absolute top left of the page
-    gsap.set(brainRef.current, {
-      xPercent: 0,
-      yPercent: 0,
-      left: '5%',    // Absolute position from left edge
-      top: '10%',    // Adjusted to be a bit lower than navbar
-      x: 0,
-      y: 0,
-      rotation: 0,
-      scale: 0.9,
-      opacity: 1,
-      transformOrigin: "center center"
-    });
-    
-    // Create a timeline for scroll animations with start trigger at very top
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: "body", // Use body as trigger to start immediately
-        start: "top top", // Start as soon as page starts scrolling
-        end: () => `+=${document.body.scrollHeight - window.innerHeight - 100}`, // Calculate proper end point
-        scrub: 0.5,    // Smoother scrubbing effect
-        pin: false,
-        onUpdate: self => {
-          // console.log("scroll progress:", self.progress.toFixed(3));
-        },
+    // Create brain waves at interval
+    const waveInterval = setInterval(() => {
+      if (brainRef.current) {
+        const wave = document.createElement('div');
+        wave.className = 'brain-wave';
+        brainRef.current.appendChild(wave);
+        
+        // Remove wave after animation completes
+        setTimeout(() => {
+          if (wave && wave.parentNode) {
+            wave.parentNode.removeChild(wave);
+          }
+        }, 4000);
       }
-    });
+    }, 3000);
     
-    // Brain animation with more precise positions based on percentage of viewport
-    // Start animation immediately when scrolling begins
-    
-    // First movement - start immediately
-    tl.to(brainRef.current, {
-      left: '15%',
-      top: '15%',
-      rotation: 5,
-      scale: 0.95,
-      opacity: 1,
-      duration: 0.15,
-      ease: "none"
-    }, 0);
-    
-    // Second movement
-    tl.to(brainRef.current, {
-      left: '30%',
-      top: '30%',
-      rotation: 10,
-      scale: 0.92,
-      opacity: 1,
-      duration: 0.2,
-      ease: "none"
-    }, 0.15);
-    
-    // Third movement
-    tl.to(brainRef.current, {
-      left: '50%',
-      top: '45%',
-      rotation: -5,
-      scale: 0.9,
-      opacity: 1,
-      duration: 0.2,
-      ease: "none"
-    }, 0.35);
-    
-    // Fourth movement
-    tl.to(brainRef.current, {
-      left: '70%',
-      top: '65%',
-      rotation: 15,
-      scale: 0.85,
-      opacity: 1,
-      duration: 0.2,
-      ease: "none"
-    }, 0.55);
-    
-    // Final movement
-    tl.to(brainRef.current, {
-      left: '85%',
-      top: '95%',
-      rotation: 25,
-      scale: 0.8,
-      opacity: 0,
-      duration: 0.15,
-      ease: "none"
-    }, 0.75);
-    
-    // Brain glow effect during scrolling
-    gsap.fromTo(brainRef.current, 
-      { filter: "drop-shadow(0 0 15px rgba(79, 70, 229, 0.5))" },
-      { 
-        filter: "drop-shadow(0 0 25px rgba(79, 70, 229, 0.9))",
-        scrollTrigger: {
-          trigger: factsSectionRef.current,
-          start: "top bottom",
-          end: "bottom top",
-          scrub: true
+    // Control 3D brain activity based on scroll position
+    if (brain3dRef.current) {
+      ScrollTrigger.create({
+        trigger: factsSectionRef.current,
+        start: "top 80%",
+        end: "bottom 20%",
+        onUpdate: (self) => {
+          // Increase brain activity as user scrolls through facts section
+          setBrainActivity(0.3 + self.progress * 0.7);
         }
-      }
-    );
+      });
+    }
     
-    // Facts section animations
+    // Animate fact items
     const factsItems = factsContainerRef.current.querySelectorAll('.fact-item');
-    
     gsap.fromTo(factsItems, 
       { 
         y: 70, 
@@ -277,6 +314,32 @@ function App() {
       }
     );
     
+    // Self-care section animation
+    if (selfCareSectionRef.current) {
+      gsap.fromTo(selfCareSectionRef.current.querySelectorAll('.self-care-card'), 
+        {
+          y: 50,
+          opacity: 0,
+          scale: 0.9
+        },
+        {
+          scrollTrigger: {
+            trigger: selfCareSectionRef.current,
+            start: "top 80%",
+            end: "center center",
+            scrub: false,
+            toggleActions: "play none none none"
+          },
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          stagger: 0.2,
+          duration: 0.8,
+          ease: "power3.out"
+        }
+      );
+    }
+    
     // Resources section animation
     gsap.fromTo(resourcesSectionRef.current.querySelectorAll('.resource-card'), 
       {
@@ -303,7 +366,7 @@ function App() {
       }
     );
     
-    // Fix scroll issues by setting up ScrollTrigger refresh
+    // Fix scroll issues by refreshing ScrollTrigger
     ScrollTrigger.refresh(true);
     
     // Handle resize events
@@ -315,6 +378,7 @@ function App() {
     
     return () => {
       window.removeEventListener('resize', handleResize);
+      clearInterval(waveInterval);
       ScrollTrigger.getAll().forEach(st => st.kill());
     };
   }, [isLoaded]);
@@ -327,242 +391,368 @@ function App() {
       <div ref={pageWrapperRef} className="main-wrapper">
         <div ref={mainContentRef} className="main-content">
           {/* Navigation bar */}
-          <nav ref={headerRef} className="fixed top-0 left-0 right-0 bg-mindful-yellow shadow-md z-50 py-4">
+          <nav ref={headerRef} className="fixed top-0 left-0 right-0 bg-warm-amber shadow-md z-50 py-4">
             <div className="container-custom flex justify-between items-center px-4">
-              <div className="text-2xl font-bold text-primary">MindWell</div>
+              <div className="text-2xl font-bold gradient-text">MindWell</div>
               <div className="hidden md:flex items-center space-x-8">
                 <a href="#hero" className="text-dark font-medium hover:text-primary transition-colors">Home</a>
                 <a href="#facts" className="text-dark font-medium hover:text-primary transition-colors">Facts</a>
                 <a href="#therapy" className="text-dark font-medium hover:text-primary transition-colors">Therapy</a>
+                <a href="#self-care" className="text-dark font-medium hover:text-primary transition-colors">Self-Care</a>
                 <a href="#resources" className="text-dark font-medium hover:text-primary transition-colors">Resources</a>
+                <a href="#brain-3d" className="text-dark font-medium hover:text-primary transition-colors">Interactive Brain</a>
               </div>
-              <button className="btn btn-primary shadow-lg">Get Help</button>
+              <button className="btn bg-secondary text-dark font-medium shadow-lg hover:bg-serene-green transition-colors">Get Help</button>
             </div>
           </nav>
           
-          {/* Brain element positioned absolutely */}
-          <div ref={brainRef} className="brain-element w-48 h-48 md:w-56 md:h-56 bg-transparent flex items-center justify-center z-50 pointer-events-none">
-            {/* Using the mind.svg from the public directory */}
-            <img 
-              src="/mind.svg" 
-              alt="3D brain visualization" 
-              className="w-full h-full object-contain"
-            />
-          </div>
-          
-          {/* Hero section */}
-          <section id="hero" className="section flex items-center justify-center bg-mindful-yellow min-h-screen pt-16">
-            <div ref={heroContentRef} className="container-custom grid md:grid-cols-5 gap-4 items-center">
-              {/* Empty space for brain visibility (1 col) */}
-              <div className="md:col-span-2"></div>
-              
-              {/* Content on the right (3 cols) */}
-              <div className="z-10 md:col-span-3">
-                <h1 ref={heroTitleRef} className="hero-title text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-dark">Your Mental Health Matters</h1>
-                <p ref={heroTextRef} className="text-lg md:text-xl mb-8 text-dark">
-                  Understanding and caring for your mental wellbeing is just as important as physical health.
-                  Let's explore how to nurture a healthier mind together.
+          {/* Hero section with 2D brain visualization */}
+          <section id="hero" className="relative min-h-screen flex items-center justify-center py-20 overflow-hidden">
+            {/* Decorative background elements */}
+            <div className="absolute inset-0 bg-gradient-to-b from-warm-amber/30 to-warm-amber/10 z-0"></div>
+            <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-300/20 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-teal-300/20 rounded-full blur-3xl"></div>
+            
+            <div className="container-custom grid md:grid-cols-2 gap-10 items-center relative z-10 px-4">
+              <div ref={heroContentRef} className="flex flex-col items-start space-y-6 max-w-xl">
+                <h1 ref={heroTitleRef} className="text-5xl md:text-6xl font-bold gradient-text leading-tight">
+                  Mental Health Matters
+                </h1>
+                <p ref={heroTextRef} className="text-lg md:text-xl text-dark/80 leading-relaxed">
+                  Understanding your mind is the first step to wellness. Explore resources, 
+                  therapy options, and self-care techniques to improve your mental well-being.
                 </p>
                 <div ref={heroButtonsRef} className="flex flex-wrap gap-4">
-                  <button className="btn btn-primary shadow-lg">Learn More</button>
-                  <button className="btn border-2 border-primary text-primary hover:bg-primary/10 shadow-lg">Take Assessment</button>
+                  <button className="btn bg-primary text-light shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all">
+                    Get Started
+                  </button>
+                  <button className="btn bg-light text-primary border border-primary/20 hover:bg-primary/10 transition-all">
+                    Learn More
+                  </button>
                 </div>
               </div>
+              
+              <div className="relative min-h-[300px] md:min-h-[400px] flex items-center justify-center">
+                {/* This div is a placeholder - the brain is positioned fixed */}
+              </div>
             </div>
-            <div ref={scrollCtaRef} className="scroll-cta absolute bottom-10 left-1/2 transform -translate-x-1/2 text-center opacity-60">
-              <p className="text-sm">Scroll Down</p>
-              <svg className="mx-auto w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
+            
+            {/* Floating brain element - positioned with GSAP */}
+            <div ref={brainRef} className="brain-element">
+              <img src="/mind.svg" alt="Abstract brain illustration" className="w-full h-full object-contain" />
+            </div>
+            
+            {/* Scroll indicator */}
+            <div ref={scrollCtaRef} className="absolute bottom-10 left-1/2 -translate-x-1/2 scroll-indicator">
+              <div className="w-8 h-14 border-2 border-primary/50 rounded-full flex items-start justify-center p-2">
+                <div className="w-1 h-3 bg-primary rounded-full animate-scroll-dot"></div>
+              </div>
+              <p className="text-xs text-center mt-2 text-dark/70">Scroll to explore</p>
             </div>
           </section>
           
-          {/* Mental health facts section */}
-          <section id="facts" ref={factsSectionRef} className="section bg-warm-amber py-16">
-            <div className="container-custom">
-              <h2 className="text-4xl font-bold mb-12 text-center text-dark">Mental Health Facts</h2>
-              <div ref={factsContainerRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div className="fact-item bg-white p-8 rounded-xl shadow-md">
-                  <div className="text-3xl font-bold text-primary mb-2">1 in 5</div>
-                  <p className="text-gray-800">U.S. adults experience mental illness each year.</p>
-                </div>
-                <div className="fact-item bg-white p-8 rounded-xl shadow-md">
-                  <div className="text-3xl font-bold text-primary mb-2">50%</div>
-                  <p className="text-gray-800">Of all lifetime mental illness begins by age 14, and 75% by age 24.</p>
-                </div>
-                <div className="fact-item bg-white p-8 rounded-xl shadow-md">
-                  <div className="text-3xl font-bold text-primary mb-2">16.5%</div>
-                  <p className="text-gray-800">Of U.S. youth aged 6-17 experienced a mental health disorder in 2019.</p>
-                </div>
-                <div className="fact-item bg-white p-8 rounded-xl shadow-md">
-                  <div className="text-3xl font-bold text-secondary mb-2">65%</div>
-                  <p className="text-gray-800">Of adults with mental illness receive no treatment.</p>
-                </div>
-                <div className="fact-item bg-white p-8 rounded-xl shadow-md">
-                  <div className="text-3xl font-bold text-secondary mb-2">300 million</div>
-                  <p className="text-gray-800">People of all ages suffer from depression globally.</p>
-                </div>
-                <div className="fact-item bg-white p-8 rounded-xl shadow-md">
-                  <div className="text-3xl font-bold text-secondary mb-2">90%</div>
-                  <p className="text-gray-800">Of people who die by suicide have an underlying mental illness.</p>
-                </div>
-              </div>
-            </div>
-          </section>
-          
-          {/* Therapy section */}
-          <section id="therapy" ref={therapySectionRef} className="section bg-mindful-yellow py-16">
-            <div className="container-custom grid md:grid-cols-2 gap-12 items-center">
-              <div>
-                <h2 className="text-4xl font-bold mb-6 animate-in text-dark">Types of Therapy</h2>
-                <p className="text-lg mb-8 text-gray-800 animate-in">
-                  There are many approaches to therapy, each designed to address different needs and conditions.
-                  Finding the right type of therapy and therapist is an important step in your mental health journey.
+          {/* 3D Brain Interactive Section */}
+          <section id="brain-3d" className="relative py-20 bg-gradient-to-b from-light to-primary/5">
+            <div className="container-custom px-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 gradient-text">
+                Interactive Brain Model
+              </h2>
+              
+              <div className="max-w-5xl mx-auto">
+                <p className="text-center text-dark/80 mb-8">
+                  Explore the human brain in 3D. The visualization represents neural activity with pulsing neurons
+                  and wave animations. This activity level changes as you navigate through different sections of the site.
                 </p>
-                <div className="space-y-6">
-                  <div className="animate-in bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-xl font-semibold mb-2 text-primary">Cognitive Behavioral Therapy (CBT)</h3>
-                    <p className="text-gray-800">Focuses on identifying and changing negative thought patterns that influence behavior and emotions.</p>
+                
+                <div 
+                  ref={brain3dRef} 
+                  className="brain-3d-container w-full h-[550px] rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-warm-amber/10 to-calm-blue/20"
+                >
+                  <Brain3DScene 
+                    activationLevel={brainActivity}
+                    interactive={true}
+                    autoRotate={true}
+                  />
+                </div>
+                
+                <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="brain-info-card p-6 bg-white rounded-xl shadow-lg border-l-4 border-primary transform transition-all hover:scale-105">
+                    <h3 className="font-bold text-xl mb-3 text-primary">Interactive Visualization</h3>
+                    <p>Explore the 3D brain model that simulates neural activity. Click and drag to rotate, scroll to zoom in and out for a closer look.</p>
                   </div>
-                  <div className="animate-in bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-xl font-semibold mb-2 text-primary">Mindfulness-Based Therapy</h3>
-                    <p className="text-gray-800">Incorporates mindfulness practices to help individuals stay present and develop coping strategies.</p>
+                  
+                  <div className="brain-info-card p-6 bg-white rounded-xl shadow-lg border-l-4 border-secondary transform transition-all hover:scale-105">
+                    <h3 className="font-bold text-xl mb-3 text-secondary">Neural Activity</h3>
+                    <p>The pulsing neurons and wave animations illustrate brain activity patterns. Notice how the intensity changes as you navigate through different sections.</p>
                   </div>
-                  <div className="animate-in bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-xl font-semibold mb-2 text-primary">Psychodynamic Therapy</h3>
-                    <p className="text-gray-800">Explores how past experiences influence current behaviors and relationships.</p>
+                  
+                  <div className="brain-info-card p-6 bg-white rounded-xl shadow-lg border-l-4 border-calm-blue transform transition-all hover:scale-105">
+                    <h3 className="font-bold text-xl mb-3 text-calm-blue">Mind-Body Connection</h3>
+                    <p>Understanding brain function helps us better comprehend mental health conditions and the effectiveness of various therapeutic approaches.</p>
                   </div>
                 </div>
-              </div>
-              <div className="hidden md:block relative">
-                <div className="animate-in absolute -right-10 top-10 w-64 h-64 bg-primary/20 rounded-full"></div>
-                <div className="animate-in absolute -left-10 bottom-10 w-40 h-40 bg-secondary/20 rounded-full"></div>
-                <img 
-                  src="https://images.unsplash.com/photo-1522424427542-1cb34d1d7ae2?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" 
-                  alt="Therapy session" 
-                  className="animate-in rounded-lg shadow-lg relative z-10 w-full"
-                />
+                
+                <div className="mt-10 p-6 bg-warm-amber/30 rounded-xl">
+                  <h3 className="font-bold text-xl mb-3 text-center">Activity Pattern Visualization</h3>
+                  <p className="text-center">
+                    The brain model's activity level increases when you explore the Mental Health Facts section, 
+                    representing how knowledge and awareness activate different parts of our brain.
+                  </p>
+                  <div className="w-full bg-white/50 h-2 mt-4 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-500 rounded-full"
+                      style={{ width: `${brainActivity * 100}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between mt-2 text-sm text-dark/70">
+                    <span>Low Activity</span>
+                    <span>High Activity</span>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
           
-          {/* Resources section */}
-          <section id="resources" ref={resourcesSectionRef} className="section bg-warm-amber py-16 mb-0">
-            <div className="container-custom">
-              <h2 className="text-4xl font-bold mb-4 text-center text-dark">Mental Health Resources</h2>
-              <p className="text-lg text-center mb-12 max-w-3xl mx-auto text-gray-800">
-                Finding the right resources is an important step in maintaining good mental health.
-                Here are some helpful resources to support your journey.
+          {/* Mental Health Facts Section */}
+          <section id="facts" ref={factsSectionRef} className="relative py-20 bg-light">
+            <div className="container-custom px-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 gradient-text">
+                Mental Health Facts
+              </h2>
+              
+              <div ref={factsContainerRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="fact-item p-6 bg-white rounded-xl shadow-lg border-l-4 border-primary">
+                  <h3 className="font-bold text-xl mb-3">1 in 5 Adults</h3>
+                  <p>Experience mental illness each year, making it one of the most common health conditions in the world.</p>
+                </div>
+                
+                <div className="fact-item p-6 bg-white rounded-xl shadow-lg border-l-4 border-secondary">
+                  <h3 className="font-bold text-xl mb-3">50% Begin by Age 14</h3>
+                  <p>Half of all mental health conditions start by age 14, with 75% developing by age 24.</p>
+                </div>
+                
+                <div className="fact-item p-6 bg-white rounded-xl shadow-lg border-l-4 border-accent">
+                  <h3 className="font-bold text-xl mb-3">Treatment Success</h3>
+                  <p>Between 70-90% of individuals report reduced symptoms and improved quality of life after receiving treatment.</p>
+                </div>
+                
+                <div className="fact-item p-6 bg-white rounded-xl shadow-lg border-l-4 border-purple-400">
+                  <h3 className="font-bold text-xl mb-3">Depression Impact</h3>
+                  <p>Depression is the leading cause of disability worldwide, affecting more than 264 million people globally.</p>
+                </div>
+                
+                <div className="fact-item p-6 bg-white rounded-xl shadow-lg border-l-4 border-teal-400">
+                  <h3 className="font-bold text-xl mb-3">Anxiety Disorders</h3>
+                  <p>Affect 18.1% of adults in a given year, making them the most common mental health conditions.</p>
+                </div>
+                
+                <div className="fact-item p-6 bg-white rounded-xl shadow-lg border-l-4 border-amber-400">
+                  <h3 className="font-bold text-xl mb-3">Mind-Body Connection</h3>
+                  <p>People with mental health conditions are at higher risk for physical health problems and vice versa.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+          
+          {/* Therapy Options Section */}
+          <section id="therapy" ref={therapySectionRef} className="relative py-20 bg-gradient-to-b from-white to-warm-amber/10">
+            <div className="container-custom px-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 gradient-text animate-in">
+                Therapy Options
+              </h2>
+              <p className="text-center text-dark/80 mb-12 max-w-2xl mx-auto animate-in">
+                Different therapy approaches work best for different people and conditions.
+                Explore these common therapy types to learn which might be right for you.
               </p>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div className="resource-card bg-white p-6 rounded-xl shadow-md">
-                  <div className="bg-primary/10 rounded-full w-14 h-14 flex items-center justify-center mb-4">
-                    <svg className="w-7 h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="therapy-card animate-in">
+                  <div className="h-40 bg-blue-100 rounded-t-xl flex items-center justify-center">
+                    <div className="therapy-icon cbt-icon"></div>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 text-dark">Crisis Hotlines</h3>
-                  <p className="text-gray-800 mb-4">Immediate support for those in crisis or having thoughts of suicide.</p>
-                  <a href="#" className="text-primary font-medium hover:underline">Learn More →</a>
+                  <div className="p-6 bg-white rounded-b-xl shadow-lg">
+                    <h3 className="font-bold text-xl mb-3">Cognitive Behavioral Therapy</h3>
+                    <p className="mb-4">Focuses on identifying and changing negative thought patterns to improve emotional regulation and develop coping strategies.</p>
+                    <a href="#" className="text-primary font-medium hover:underline">Learn more →</a>
+                  </div>
                 </div>
                 
-                <div className="resource-card bg-white p-6 rounded-xl shadow-md">
-                  <div className="bg-primary/10 rounded-full w-14 h-14 flex items-center justify-center mb-4">
-                    <svg className="w-7 h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10h.01M15 10h.01M12 16v-1" />
-                    </svg>
+                <div className="therapy-card animate-in">
+                  <div className="h-40 bg-purple-100 rounded-t-xl flex items-center justify-center">
+                    <div className="therapy-icon psychodynamic-icon"></div>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 text-dark">Support Groups</h3>
-                  <p className="text-gray-800 mb-4">Connect with others facing similar challenges for mutual support.</p>
-                  <a href="#" className="text-primary font-medium hover:underline">Find Groups →</a>
+                  <div className="p-6 bg-white rounded-b-xl shadow-lg">
+                    <h3 className="font-bold text-xl mb-3">Psychodynamic Therapy</h3>
+                    <p className="mb-4">Explores unconscious patterns of behavior and emotions that may be rooted in past experiences and relationships.</p>
+                    <a href="#" className="text-primary font-medium hover:underline">Learn more →</a>
+                  </div>
                 </div>
                 
-                <div className="resource-card bg-white p-6 rounded-xl shadow-md">
-                  <div className="bg-secondary/10 rounded-full w-14 h-14 flex items-center justify-center mb-4">
-                    <svg className="w-7 h-7 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
+                <div className="therapy-card animate-in">
+                  <div className="h-40 bg-green-100 rounded-t-xl flex items-center justify-center">
+                    <div className="therapy-icon mindfulness-icon"></div>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 text-dark">Recommended Reading</h3>
-                  <p className="text-gray-800 mb-4">Books and articles about mental health awareness and self-care.</p>
-                  <a href="#" className="text-secondary font-medium hover:underline">View List →</a>
+                  <div className="p-6 bg-white rounded-b-xl shadow-lg">
+                    <h3 className="font-bold text-xl mb-3">Mindfulness-Based Therapy</h3>
+                    <p className="mb-4">Incorporates meditation and awareness techniques to help individuals stay present and reduce stress and anxiety.</p>
+                    <a href="#" className="text-primary font-medium hover:underline">Learn more →</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          
+          {/* Self-Care Section */}
+          <section id="self-care" ref={selfCareSectionRef} className="relative py-20 bg-light">
+            <div className="container-custom px-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 gradient-text">
+                Daily Self-Care Practices
+              </h2>
+              <p className="text-center text-dark/80 mb-12 max-w-2xl mx-auto">
+                Small but consistent self-care habits can significantly improve your mental well-being over time.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="self-care-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-primary">
+                  <h3 className="font-bold text-xl mb-3">Mindful Meditation</h3>
+                  <p>Practice 5-10 minutes daily to reduce stress and improve focus.</p>
                 </div>
                 
-                <div className="resource-card bg-white p-6 rounded-xl shadow-md">
-                  <div className="bg-primary/10 rounded-full w-14 h-14 flex items-center justify-center mb-4">
-                    <svg className="w-7 h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2 text-dark">Self-Assessment Tools</h3>
-                  <p className="text-gray-800 mb-4">Online tools to help you assess your mental health status.</p>
-                  <a href="#" className="text-primary font-medium hover:underline">Take Assessment →</a>
+                <div className="self-care-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-secondary">
+                  <h3 className="font-bold text-xl mb-3">Physical Activity</h3>
+                  <p>Regular exercise releases endorphins that improve mood and reduce anxiety.</p>
                 </div>
                 
-                <div className="resource-card bg-white p-6 rounded-xl shadow-md">
-                  <div className="bg-secondary/10 rounded-full w-14 h-14 flex items-center justify-center mb-4">
-                    <svg className="w-7 h-7 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2 text-dark">Helpful Apps</h3>
-                  <p className="text-gray-800 mb-4">Mobile applications for meditation, mood tracking, and mental wellness.</p>
-                  <a href="#" className="text-secondary font-medium hover:underline">Explore Apps →</a>
+                <div className="self-care-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-accent">
+                  <h3 className="font-bold text-xl mb-3">Healthy Sleep</h3>
+                  <p>Maintain consistent sleep schedules to improve cognitive function and emotional regulation.</p>
                 </div>
                 
-                <div className="resource-card bg-white p-6 rounded-xl shadow-md">
-                  <div className="bg-primary/10 rounded-full w-14 h-14 flex items-center justify-center mb-4">
-                    <svg className="w-7 h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+                <div className="self-care-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-amber-400">
+                  <h3 className="font-bold text-xl mb-3">Social Connection</h3>
+                  <p>Regular interaction with supportive people can buffer against stress and loneliness.</p>
+                </div>
+                
+                <div className="self-care-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-purple-400">
+                  <h3 className="font-bold text-xl mb-3">Journaling</h3>
+                  <p>Writing down thoughts and feelings helps process emotions and gain perspective.</p>
+                </div>
+                
+                <div className="self-care-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-teal-400">
+                  <h3 className="font-bold text-xl mb-3">Nature Time</h3>
+                  <p>Spending time outdoors reduces stress and improves mood and cognitive function.</p>
+                </div>
+                
+                <div className="self-care-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-400">
+                  <h3 className="font-bold text-xl mb-3">Creative Expression</h3>
+                  <p>Activities like art, music, or writing can provide emotional release and fulfillment.</p>
+                </div>
+                
+                <div className="self-care-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-400">
+                  <h3 className="font-bold text-xl mb-3">Healthy Boundaries</h3>
+                  <p>Learning to say no and setting limits protects your mental energy and relationships.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+          
+          {/* Resources Section */}
+          <section id="resources" ref={resourcesSectionRef} className="relative py-20 bg-gradient-to-b from-white to-warm-amber/20">
+            <div className="container-custom px-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 gradient-text">
+                Mental Health Resources
+              </h2>
+              <p className="text-center text-dark/80 mb-12 max-w-2xl mx-auto">
+                Access these valuable resources to learn more about mental health or get help when needed.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="resource-card bg-white rounded-xl overflow-hidden shadow-lg transform transition-transform hover:scale-105">
+                  <div className="p-6">
+                    <h3 className="font-bold text-xl mb-3">Crisis Support Lines</h3>
+                    <p className="mb-4">Immediate support for those experiencing mental health crises.</p>
+                    <a href="#" className="btn inline-block bg-primary text-white hover:bg-primary-dark transition-colors">Find Support</a>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 text-dark">Find a Therapist</h3>
-                  <p className="text-gray-800 mb-4">Search for qualified mental health professionals in your area.</p>
-                  <a href="#" className="text-primary font-medium hover:underline">Search Now →</a>
+                </div>
+                
+                <div className="resource-card bg-white rounded-xl overflow-hidden shadow-lg transform transition-transform hover:scale-105">
+                  <div className="p-6">
+                    <h3 className="font-bold text-xl mb-3">Mental Health Apps</h3>
+                    <p className="mb-4">Mobile applications for meditation, mood tracking, and therapy.</p>
+                    <a href="#" className="btn inline-block bg-secondary text-dark hover:bg-secondary-dark transition-colors">Explore Apps</a>
+                  </div>
+                </div>
+                
+                <div className="resource-card bg-white rounded-xl overflow-hidden shadow-lg transform transition-transform hover:scale-105">
+                  <div className="p-6">
+                    <h3 className="font-bold text-xl mb-3">Find a Therapist</h3>
+                    <p className="mb-4">Directory to help you find mental health professionals in your area.</p>
+                    <a href="#" className="btn inline-block bg-accent text-white hover:bg-accent-dark transition-colors">Search Directory</a>
+                  </div>
                 </div>
               </div>
             </div>
           </section>
           
           {/* Footer */}
-          <footer ref={footerRef} className="bg-dark text-white py-12">
+          <footer ref={footerRef} className="bg-dark text-light py-10">
             <div className="container-custom px-4">
-              <div className="grid md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div>
                   <h3 className="text-xl font-bold mb-4">MindWell</h3>
-                  <p className="text-gray-300">
-                    Supporting your mental health journey with reliable information and resources.
+                  <p className="text-light/70">
+                    Supporting mental health awareness, education, and resources for everyone.
                   </p>
                 </div>
+                
                 <div>
-                  <h4 className="font-semibold mb-4">Quick Links</h4>
-                  <ul className="space-y-2 text-gray-300">
-                    <li><a href="#hero" className="hover:text-white transition-colors">Home</a></li>
-                    <li><a href="#facts" className="hover:text-white transition-colors">Facts</a></li>
-                    <li><a href="#therapy" className="hover:text-white transition-colors">Therapy</a></li>
-                    <li><a href="#resources" className="hover:text-white transition-colors">Resources</a></li>
+                  <h4 className="text-lg font-bold mb-4">Quick Links</h4>
+                  <ul className="space-y-2">
+                    <li><a href="#" className="text-light/70 hover:text-light transition-colors">Home</a></li>
+                    <li><a href="#" className="text-light/70 hover:text-light transition-colors">About Us</a></li>
+                    <li><a href="#" className="text-light/70 hover:text-light transition-colors">Resources</a></li>
+                    <li><a href="#" className="text-light/70 hover:text-light transition-colors">Contact</a></li>
                   </ul>
                 </div>
+                
                 <div>
-                  <h4 className="font-semibold mb-4">Emergency Contacts</h4>
-                  <div className="text-gray-300">
-                    <p className="mb-2">National Suicide Prevention Lifeline</p>
-                    <p className="font-semibold text-white mb-4">1-800-273-8255</p>
-                    <p className="mb-2">Crisis Text Line</p>
-                    <p className="font-semibold text-white">Text HOME to 741741</p>
+                  <h4 className="text-lg font-bold mb-4">Resources</h4>
+                  <ul className="space-y-2">
+                    <li><a href="#" className="text-light/70 hover:text-light transition-colors">Crisis Hotlines</a></li>
+                    <li><a href="#" className="text-light/70 hover:text-light transition-colors">Find Therapy</a></li>
+                    <li><a href="#" className="text-light/70 hover:text-light transition-colors">Support Groups</a></li>
+                    <li><a href="#" className="text-light/70 hover:text-light transition-colors">Educational Materials</a></li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <h4 className="text-lg font-bold mb-4">Connect With Us</h4>
+                  <div className="flex space-x-4 mb-4">
+                    <a href="#" className="text-light hover:text-primary transition-colors">
+                      <span className="social-icon facebook-icon"></span>
+                    </a>
+                    <a href="#" className="text-light hover:text-primary transition-colors">
+                      <span className="social-icon twitter-icon"></span>
+                    </a>
+                    <a href="#" className="text-light hover:text-primary transition-colors">
+                      <span className="social-icon instagram-icon"></span>
+                    </a>
                   </div>
+                  <p className="text-light/70">
+                    Subscribe to our newsletter for updates on mental health resources.
+                  </p>
                 </div>
               </div>
-              <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-                <p>© 2025 MindWell. All rights reserved.</p>
+              
+              <div className="border-t border-light/20 mt-8 pt-6 text-center text-light/50 text-sm">
+                <p>© 2025 MindWell. All rights reserved. This site is for educational purposes only.</p>
               </div>
             </div>
           </footer>
         </div>
       </div>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
