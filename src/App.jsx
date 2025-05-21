@@ -10,7 +10,7 @@ gsap.registerPlugin(ScrollTrigger)
 function App() {
   // Add loading state to control initial animations
   const [isLoaded, setIsLoaded] = useState(false);
-  const [brainActivity, setBrainActivity] = useState(0.5);
+  const [brainActivity, setBrainActivity] = useState(0.2); // Adjusted initial state
   
   // References for animated elements
   const headerRef = useRef(null)
@@ -31,6 +31,8 @@ function App() {
   const heroButtonsRef = useRef(null)
   const pageWrapperRef = useRef(null)
   const scrollCtaRef = useRef(null)
+  const heroBgDeco1Ref = useRef(null)
+  const heroBgDeco2Ref = useRef(null)
   
   useEffect(() => {
     // Set loaded state after a short delay to trigger animations
@@ -59,16 +61,30 @@ function App() {
       particle.style.top = `${randomY}%`;
       
       // Random animation delay for varied effect
-      particle.style.animationDelay = `${Math.random() * 3}s`;
+      // particle.style.animationDelay = `${Math.random() * 3}s`; // Removed, GSAP will handle
       
       brainElement.appendChild(particle);
+
+      // GSAP animation for each particle
+      gsap.set(particle, { scale: 0, opacity: 0 }); // Initial state for GSAP animation
+      gsap.to(particle, {
+        x: () => Math.random() * 30 - 15, // Random drift x
+        y: () => Math.random() * 30 - 15, // Random drift y
+        opacity: () => Math.random() * 0.5 + 0.5, // Fade in to a random opacity
+        scale: () => Math.random() * 0.5 + 0.5,   // Pulse to a random scale
+        duration: () => Math.random() * 1.5 + 1,  // Random duration
+        repeat: -1, // Loop indefinitely
+        yoyo: true, // Animate back and forth
+        ease: "power1.inOut",
+        delay: Math.random() * 1.5, // Random initial delay
+      });
     }
     
-    // Add wave animation
-    const wave = document.createElement('div');
-    wave.className = 'brain-wave';
-    wave.style.animationDelay = '1s';
-    brainElement.appendChild(wave);
+    // Add wave animation - This will be handled by the waveInterval logic later
+    // const wave = document.createElement('div');
+    // wave.className = 'brain-wave';
+    // wave.style.animationDelay = '1s';
+    // brainElement.appendChild(wave);
   };
   
   useEffect(() => {
@@ -171,46 +187,108 @@ function App() {
           top: position.top,
           left: position.left,
           right: position.right,
-          rotation: rotation,
+          rotation: rotation + (Math.random() * 10 - 5), // Add random rotation wobble
           scale: scale,
-          ease: "power1.inOut",
-          duration: 0.25, // Relative duration within the timeline
+          xPercent: Math.random() * 10 - 5, // Add random x wobble
+          yPercent: Math.random() * 10 - 5, // Add random y wobble
+          ease: "power2.inOut", // Smoother easing
+          duration: 0.35, // Slightly longer duration for smoother effect
         });
+      });
+      
+      // Add a final tween to reset wobble at the end of the scroll
+      brainZigzag.to(brainRef.current, {
+        xPercent: 0,
+        yPercent: 0,
+        rotation: zigzagPath[zigzagPath.length -1].rotation || 0, // Assuming last point might have a target rotation
+        ease: "power2.inOut",
+        duration: 0.35
       });
     }
     
     // Animate hero content
-    masterTl.fromTo(heroTitleRef.current, {
-      clipPath: "polygon(0 0, 0 0, 0 100%, 0 100%)",
-      opacity: 0
-    }, {
-      clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
-      opacity: 1,
-      duration: 1.2,
-      ease: "power4.out"
-    }, "-=0.7");
     
-    masterTl.fromTo(heroTextRef.current, {
-      y: 40,
-      opacity: 0
-    }, {
-      y: 0,
-      opacity: 1,
-      duration: 1,
-      ease: "power3.out"
-    }, "-=0.9");
+    // Parallax for hero background elements
+    if (heroBgDeco1Ref.current && heroBgDeco2Ref.current) {
+      gsap.to(heroBgDeco1Ref.current, {
+        y: -100, // Move up
+        scrollTrigger: {
+          trigger: "#hero",
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+      gsap.to(heroBgDeco2Ref.current, {
+        y: 100, // Move down
+        scrollTrigger: {
+          trigger: "#hero",
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+    }
+    
+    // Animate hero title character by character
+    if (heroTitleRef.current) {
+      const titleText = heroTitleRef.current.innerText;
+      heroTitleRef.current.innerHTML = titleText
+        .split("")
+        .map((char) => `<span class="char inline-block">${char === " " ? "&nbsp;" : char}</span>`)
+        .join("");
+      
+      masterTl.fromTo(heroTitleRef.current.querySelectorAll(".char"), {
+        y: 50,
+        opacity: 0,
+        rotationZ: 10,
+      }, {
+        y: 0,
+        opacity: 1,
+        rotationZ: 0,
+        stagger: 0.03,
+        duration: 0.8,
+        ease: "power3.out",
+      }, "-=0.7");
+    }
+    
+    // Animate hero text word by word
+    if (heroTextRef.current) {
+      const textContent = heroTextRef.current.innerText;
+      heroTextRef.current.innerHTML = textContent
+        .split(" ")
+        .map((word) => `<span class="word inline-block">${word}&nbsp;</span>`)
+        .join("");
+      
+      masterTl.fromTo(heroTextRef.current.querySelectorAll(".word"), {
+        y: 30,
+        opacity: 0,
+        skewX: -10,
+        rotationZ: 5
+      }, {
+        y: 0,
+        opacity: 1,
+        skewX: 0,
+        rotationZ: 0,
+        stagger: 0.05,
+        duration: 0.8,
+        ease: "power3.out",
+      }, "-=0.9");
+    }
     
     masterTl.fromTo(heroButtonsRef.current.children, {
       scale: 0.8,
       y: 30,
-      opacity: 0
+      opacity: 0,
+      rotationZ: -10 // Added rotation
     }, {
       scale: 1,
       y: 0,
       opacity: 1,
+      rotationZ: 0, // End rotation at 0
       stagger: 0.15,
-      duration: 0.7,
-      ease: "back.out(1.7)"
+      duration: 1, // Slightly longer duration for elastic ease
+      ease: "elastic.out(1, 0.5)" // Playful elastic easing
     }, "-=0.8");
     
     masterTl.fromTo(scrollCtaRef.current, {
@@ -243,128 +321,250 @@ function App() {
         wave.className = 'brain-wave';
         brainRef.current.appendChild(wave);
         
-        // Remove wave after animation completes
-        setTimeout(() => {
-          if (wave && wave.parentNode) {
-            wave.parentNode.removeChild(wave);
+        gsap.fromTo(wave, 
+          { scale: 0.1, opacity: 0.7 }, 
+          { 
+            scale: 1.5, 
+            opacity: 0, 
+            duration: 3, // Duration of the wave effect
+            ease: "power1.out",
+            onComplete: () => {
+              if (wave && wave.parentNode) {
+                wave.parentNode.removeChild(wave);
+              }
+            }
           }
-        }, 4000);
+        );
       }
     }, 3000);
     
-    // Control 3D brain activity based on scroll position
-    if (brain3dRef.current) {
+    // Control 3D brain activity based on overall page scroll position
+    if (brain3dRef.current) { // Keep check for brain3dRef if activity is only for it
       ScrollTrigger.create({
-        trigger: factsSectionRef.current,
-        start: "top 80%",
-        end: "bottom 20%",
+        trigger: document.body, // Use document.body for overall page scroll
+        start: "top top",
+        end: "bottom bottom",
+        scrub: true, // Add scrub for smoother updates, can be true or a number
         onUpdate: (self) => {
-          // Increase brain activity as user scrolls through facts section
-          setBrainActivity(0.3 + self.progress * 0.7);
-        }
+          // Map overall scroll progress to brainActivity (0.2 to 1.0)
+          setBrainActivity(0.2 + self.progress * 0.8);
+        },
+        id: "brainActivityScroll" // Add an ID for easier debugging if needed
       });
     }
     
-    // Animate fact items
-    const factsItems = factsContainerRef.current.querySelectorAll('.fact-item');
-    gsap.fromTo(factsItems, 
-      { 
-        y: 70, 
-        opacity: 0,
-        scale: 0.9
-      },
-      {
-        scrollTrigger: {
-          trigger: factsSectionRef.current,
-          start: "top 80%",
-          end: "center center",
-          scrub: false,
-          toggleActions: "play none none none"
-        },
-        y: 0,
-        opacity: 1,
-        scale: 1,
-        stagger: 0.15,
-        duration: 0.8,
-        ease: "back.out(1.5)"
-      }
-    );
+    // Animate fact items using ScrollTrigger.batch()
+    if (factsContainerRef.current) {
+      const factsItems = factsContainerRef.current.querySelectorAll('.fact-item');
+      ScrollTrigger.batch(factsItems, {
+        start: "top 90%",
+        end: "center 70%",
+        toggleActions: "play none none none",
+        onEnter: batch => gsap.to(batch, {
+          opacity: 1,
+          x: 0,
+          rotation: 0,
+          scale: 1,
+          stagger: {
+            each: 0.1,
+            from: "start" // Or "edges", "center"
+          },
+          duration: 1,
+          ease: "expo.out",
+          overwrite: true // Important for re-runs if ScrollTriggers are not killed properly before
+        }),
+        onLeaveBack: batch => gsap.set(batch, { // Reset if scrolling back up past start
+          opacity: 0, 
+          x: (i) => i % 2 === 0 ? -100 : 100,
+          rotation: (i) => i % 2 === 0 ? -5 : 5,
+          scale: 0.9,
+          overwrite: true
+        }),
+        // Set initial state for batch elements before animation
+        onRefresh: self => self.targets.forEach((target, i) => gsap.set(target, {
+          opacity: 0,
+          x: i % 2 === 0 ? -100 : 100,
+          rotation: i % 2 === 0 ? -5 : 5,
+          scale: 0.9
+        }))
+      });
+    }
     
     // Therapy section animation
-    gsap.fromTo(therapySectionRef.current.querySelectorAll('.animate-in'), 
-      {
-        y: 70,
-        opacity: 0,
-        scale: 0.95
-      },
-      {
-        scrollTrigger: {
-          trigger: therapySectionRef.current,
-          start: "top 70%",
-          end: "center center",
-          scrub: false,
-          toggleActions: "play none none none"
+    if (therapySectionRef.current) {
+      const therapyAnimateInElements = therapySectionRef.current.querySelectorAll('.animate-in');
+      ScrollTrigger.batch(therapyAnimateInElements, {
+        start: "top 85%",
+        toggleActions: "play none none none",
+        onEnter: batch => {
+          batch.forEach((el, idx) => {
+            if (el.tagName === 'H2' || el.tagName === 'P') {
+              const textContent = el.innerText;
+              el.innerHTML = textContent
+                .split(" ")
+                .map((word) => `<span class="word inline-block opacity-0" style="transform: translateY(20px) skewX(-10deg);">${word}&nbsp;</span>`)
+                .join("");
+              gsap.set(el, { opacity: 1 }); // Make container visible
+              gsap.to(el.querySelectorAll(".word"), {
+                opacity: 1,
+                y: 0,
+                skewX: 0,
+                stagger: 0.05,
+                duration: 0.5,
+                ease: "power3.out",
+                delay: idx * 0.1 // Stagger between .animate-in elements
+              });
+            } else {
+              gsap.to(el, { y: 0, opacity: 1, scale: 1, duration: 0.8, ease: "power3.out", delay: idx * 0.1 });
+            }
+          });
         },
-        y: 0,
-        opacity: 1,
-        scale: 1,
-        stagger: 0.2,
-        duration: 1,
-        ease: "back.out(1.5)"
-      }
-    );
+        onLeaveBack: batch => {
+          batch.forEach(el => {
+            if (el.tagName === 'H2' || el.tagName === 'P') {
+              // Reset words if necessary, or just the container
+              gsap.set(el.querySelectorAll(".word"), { opacity: 0, y: 20, skewX: -10 });
+            } else {
+              gsap.set(el, { y: 50, opacity: 0, scale: 0.95 });
+            }
+          });
+        },
+        onRefresh: self => self.targets.forEach(el => {
+          if (el.tagName === 'H2' || el.tagName === 'P') {
+            // Initial state for words is set via inline style above
+             gsap.set(el, { opacity: 0 }); // Keep container hidden initially
+          } else {
+            gsap.set(el, { y: 50, opacity: 0, scale: 0.95 });
+          }
+        })
+      });
+
+      const therapyCards = therapySectionRef.current.querySelectorAll('.therapy-card');
+      ScrollTrigger.batch(therapyCards, {
+        start: "top 85%",
+        toggleActions: "play none none none",
+        onEnter: batch => gsap.to(batch, {
+          opacity: 1,
+          rotationY: 0,
+          scale: 1,
+          stagger: 0.15,
+          duration: 1,
+          ease: "power3.out",
+          overwrite: true
+        }),
+        onLeaveBack: batch => gsap.set(batch, {
+          opacity: 0,
+          rotationY: -90,
+          scale: 0.8,
+          overwrite: true
+        }),
+        onRefresh: self => self.targets.forEach(target => gsap.set(target, {
+          opacity: 0,
+          rotationY: -90,
+          scale: 0.8,
+          transformOrigin: "left center"
+        }))
+      });
+    }
     
     // Self-care section animation
     if (selfCareSectionRef.current) {
-      gsap.fromTo(selfCareSectionRef.current.querySelectorAll('.self-care-card'), 
-        {
-          y: 50,
-          opacity: 0,
-          scale: 0.9
-        },
-        {
-          scrollTrigger: {
-            trigger: selfCareSectionRef.current,
-            start: "top 80%",
-            end: "center center",
-            scrub: false,
-            toggleActions: "play none none none"
-          },
-          y: 0,
+      const selfCareCards = selfCareSectionRef.current.querySelectorAll('.self-care-card');
+      ScrollTrigger.batch(selfCareCards, {
+        start: "top 90%",
+        toggleActions: "play none none none",
+        onEnter: batch => gsap.to(batch, {
           opacity: 1,
           scale: 1,
-          stagger: 0.2,
+          stagger: 0.1,
           duration: 0.8,
-          ease: "power3.out"
-        }
-      );
+          ease: "circ.out",
+          overwrite: true
+        }),
+        onLeaveBack: batch => gsap.set(batch, {
+          opacity: 0,
+          scale: 0.5,
+          overwrite: true
+        }),
+        onRefresh: self => self.targets.forEach(target => gsap.set(target, {
+          opacity: 0,
+          scale: 0.5,
+          transformOrigin: "center center"
+        }))
+      });
     }
     
     // Resources section animation
-    gsap.fromTo(resourcesSectionRef.current.querySelectorAll('.resource-card'), 
-      {
-        y: 50,
-        opacity: 0,
-        scale: 0.9,
-        rotationY: 15
-      },
-      {
-        scrollTrigger: {
-          trigger: resourcesSectionRef.current,
-          start: "top 80%",
-          end: "center center",
-          scrub: false,
-          toggleActions: "play none none none"
-        },
-        y: 0,
-        rotationY: 0,
-        opacity: 1,
-        scale: 1,
-        stagger: 0.1,
-        duration: 1,
-        ease: "power2.out"
+    if (resourcesSectionRef.current) {
+      const resourceCards = resourcesSectionRef.current.querySelectorAll('.resource-card');
+      ScrollTrigger.batch(resourceCards, {
+        start: "top 95%",
+        end: "center 75%",
+        toggleActions: "play none none none",
+        onEnter: batch => gsap.to(batch, {
+          opacity: 1,
+          x: 0,
+          rotationY: 0,
+          scale: 1,
+          stagger: {
+            each: 0.1,
+            from: "start"
+          },
+          duration: 1.3,
+          ease: "sine.out",
+          overwrite: true
+        }),
+        onLeaveBack: batch => gsap.set(batch, {
+          opacity: 0,
+          x: (i) => i % 2 === 0 ? -100 : 100,
+          rotationY: (i) => i % 2 === 0 ? 60 : -60,
+          scale: 0.8,
+          overwrite: true
+        }),
+        onRefresh: self => self.targets.forEach((target, i) => gsap.set(target, {
+          opacity: 0,
+          x: i % 2 === 0 ? -100 : 100,
+          rotationY: i % 2 === 0 ? 60 : -60,
+          scale: 0.8,
+          transformOrigin: "center center"
+        }))
+      });
+    }
+    
+    // Footer elements animation
+    if (footerRef.current) {
+      const footerElements = footerRef.current.querySelectorAll(".container-custom > .grid > div"); // Target direct children of grid
+      if (footerElements.length > 0) {
+        gsap.fromTo(footerElements,
+          { opacity: 0, y: 30 },
+          {
+            scrollTrigger: {
+              trigger: footerRef.current,
+              start: "top 85%", // Start when footer is 85% in view
+              end: "bottom bottom",
+              toggleActions: "play none none none",
+            },
+            opacity: 1,
+            y: 0,
+            stagger: 0.15,
+            duration: 0.8,
+            ease: "power2.out"
+          }
+        );
       }
-    );
+    }
+
+    // Navigation bar background change on scroll
+    if (headerRef.current) {
+      ScrollTrigger.create({
+        trigger: "#hero", // Hero section as the trigger
+        start: "bottom top", // When the bottom of the hero section hits the top of the viewport
+        end: "bottom top-=1", // A very small scroll distance to ensure it triggers correctly
+        toggleClass: { targets: headerRef.current, className: "scrolled-nav" },
+        // markers: true, // Uncomment for debugging
+        id: "navScroll"
+      });
+    }
     
     // Fix scroll issues by refreshing ScrollTrigger
     ScrollTrigger.refresh(true);
@@ -380,6 +580,9 @@ function App() {
       window.removeEventListener('resize', handleResize);
       clearInterval(waveInterval);
       ScrollTrigger.getAll().forEach(st => st.kill());
+      if (masterTl) {
+        masterTl.kill(); // Kill the master timeline on cleanup
+      }
     };
   }, [isLoaded]);
 
@@ -410,8 +613,8 @@ function App() {
           <section id="hero" className="relative min-h-screen flex items-center justify-center py-20 overflow-hidden">
             {/* Decorative background elements */}
             <div className="absolute inset-0 bg-gradient-to-b from-warm-amber/30 to-warm-amber/10 z-0"></div>
-            <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-300/20 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-teal-300/20 rounded-full blur-3xl"></div>
+            <div ref={heroBgDeco1Ref} className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-300/20 rounded-full blur-3xl"></div>
+            <div ref={heroBgDeco2Ref} className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-teal-300/20 rounded-full blur-3xl"></div>
             
             <div className="container-custom grid md:grid-cols-2 gap-10 items-center relative z-10 px-4">
               <div ref={heroContentRef} className="flex flex-col items-start space-y-6 max-w-xl">

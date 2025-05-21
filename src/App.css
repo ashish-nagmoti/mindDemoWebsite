@@ -324,3 +324,10 @@ html {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   background: linear-gradient(to bottom right, rgba(255, 236, 179, 0.1), rgba(156, 106, 222, 0.1));
 }
+
+/* Styles for the navigation bar when scrolled */
+.scrolled-nav {
+  background-color: white !important; /* Or your desired color */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
+}

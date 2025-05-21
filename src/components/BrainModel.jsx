@@ -100,7 +100,7 @@ export function BrainModel({
           opacity: 0.6,
           timestamp: Date.now()
         };
-      }, 2000 / (0.5 + activationLevel));
+      }, 2000 / (0.3 + activationLevel * 1.2)); // Increased frequency sensitivity
     }
     
     return () => {
@@ -121,7 +121,7 @@ export function BrainModel({
       const pulse = Math.sin(state.clock.getElapsedTime() * pulseSpeed) * 0.05;
       setPulseIntensity(pulse);
       
-      const scaleFactor = 1 + pulse * activationLevel * 1.2;
+      const scaleFactor = 1 + pulse * activationLevel * 2.0; // Increased multiplier
       meshRef.current.scale.set(
         scale[0] * scaleFactor,
         scale[1] * scaleFactor,
@@ -130,7 +130,7 @@ export function BrainModel({
     }
     
     // Neural activity simulation - simplified calculation
-    setDistortStrength(0.1 + Math.sin(state.clock.getElapsedTime()) * 0.04 * activationLevel);
+    setDistortStrength(0.1 + Math.sin(state.clock.getElapsedTime()) * (0.05 + 0.1 * activationLevel)); // Increased impact
     
     // Animate neuron particles - more efficiently
     if (groupRef.current) {
@@ -145,16 +145,17 @@ export function BrainModel({
         
         // Pulsating animation - simplified
         const pulseFreq = neuron.speed;
-        const pulseAmp = 0.2 * activationLevel;
+        const pulseAmp = 0.1 + 0.4 * activationLevel; // Increased pulseAmp dependency
         const elapsedTime = state.clock.getElapsedTime();
         const pulseFactor = 1 + Math.sin(elapsedTime * pulseFreq + neuron.offset) * pulseAmp;
         
         neuronMesh.scale.setScalar(neuron.scale * pulseFactor);
         
         // Drift animation - more optimized
-        neuronMesh.position.x += neuron.direction.x * (0.5 + activationLevel * 0.5);
-        neuronMesh.position.y += neuron.direction.y * (0.5 + activationLevel * 0.5);
-        neuronMesh.position.z += neuron.direction.z * (0.5 + activationLevel * 0.5);
+        const speedScale = 0.5 + activationLevel * 1.0; // Increased movement speed scaling
+        neuronMesh.position.x += neuron.direction.x * speedScale;
+        neuronMesh.position.y += neuron.direction.y * speedScale;
+        neuronMesh.position.z += neuron.direction.z * speedScale;
         
         // Keep neurons within brain bounds
         const distFromCenter = neuronMesh.position.lengthSq();
@@ -173,9 +174,9 @@ export function BrainModel({
         }
         
         // Simplified opacity calculation
-        neuronMesh.material.opacity = 0.4 + 
-          (Math.sin(elapsedTime + neuron.offset) * 0.2 + 0.2) * 
-          activationLevel;
+        const baseOpacity = 0.2;
+        const activeOpacity = (Math.sin(elapsedTime + neuron.offset) * 0.2 + 0.2) * activationLevel * 1.5;
+        neuronMesh.material.opacity = Math.max(0, Math.min(1, baseOpacity + activeOpacity)); // Clamped opacity
       });
     }
     
@@ -190,8 +191,8 @@ export function BrainModel({
       }
       
       // Update wave properties - these will be used during render
-      wave.scale = 0.1 + age * 1.1;
-      wave.opacity = 0.6 * (1 - age / 2);
+      wave.scale = 0.1 + age * (1.1 + 0.5 * activationLevel); // Scale influenced by activationLevel
+      wave.opacity = Math.min(1, (0.4 + 0.4 * activationLevel)) * (1 - age / 2); // Opacity influenced by activationLevel and clamped
     });
   });
   
@@ -205,12 +206,52 @@ export function BrainModel({
   }, [hovered]);
 
   // Initialize colors
-  const baseColor = new THREE.Color(color);
-  const hoverColor = new THREE.Color(color).addScalar(0.2);
-  const clickColor = new THREE.Color(color).addScalar(0.4);
+  const baseColor = useRef(new THREE.Color(color)); // Use ref to avoid recreating each frame
+  const activeColor = useRef(new THREE.Color("#FF69B4")); // Example: Hot Pink, also ref
+  const currentColor = useRef(new THREE.Color(color)); // Current dynamic color, also ref
   
-  // Color based on interaction state
-  const currentColor = clicked ? clickColor : (hovered ? hoverColor : baseColor);
+  // Update base color if props.color changes
+  useEffect(() => {
+    baseColor.current.set(color);
+    currentColor.current.set(color); // Reset current color as well
+  }, [color]);
+
+  // Temporary variable for interaction color to be calculated in useFrame
+  let currentInteractionColor = new THREE.Color();
+
+  // Update colors in useFrame
+  useFrame(() => {
+    if (!mounted.current) return;
+    // Lerp logic for dynamic color based on activationLevel
+    currentColor.current.lerpColors(baseColor.current, activeColor.current, activationLevel);
+
+    // Calculate interactionColor based on the updated currentColor
+    currentInteractionColor.copy(currentColor.current);
+    if (clicked) {
+      currentInteractionColor.addScalar(0.4);
+    } else if (hovered) {
+      currentInteractionColor.addScalar(0.2);
+    }
+
+    // Apply to fallback material
+    if (meshRef.current && meshRef.current.material && meshRef.current.material.userData?.isDistortMaterial) {
+      const material = meshRef.current.material;
+      material.color.set(currentInteractionColor); 
+      material.emissive.set(currentInteractionColor);
+    }
+
+    // Apply to neurons
+    if (groupRef.current) {
+      groupRef.current.children.forEach(child => {
+        if (child.userData?.isNeuron && child.material) {
+          child.material.color.set(currentColor.current);
+        }
+      });
+    }
+    
+    // Apply to waves - done during render below
+    // Apply to pointLight - done during render below
+  });
   
   // Float component for gentle hovering movement - reduced complexity
   return (
@@ -239,8 +280,9 @@ export function BrainModel({
             <>
               <sphereGeometry args={[1, 32, 32]} /> {/* Reduced geometry complexity */}
               <MeshDistortMaterial
-                color={currentColor}
-                emissive={currentColor}
+                userData={{ isDistortMaterial: true }} // Mark this material
+                color={currentColor.current} // Initial color, will be updated by useFrame
+                emissive={currentColor.current} // Initial emissive, will be updated by useFrame
                 emissiveIntensity={0.2 + activationLevel * 0.3}
                 distort={distortStrength}
                 speed={2}
@@ -263,9 +305,9 @@ export function BrainModel({
           >
             <sphereGeometry args={[1, 8, 8]} /> {/* Reduced geometry complexity */}
             <meshBasicMaterial
-              color={currentColor}
+              color={currentColor.current} // Use the dynamic color
               transparent
-              opacity={0.6}
+              opacity={0.6} // Initial opacity, will be updated in useFrame
               toneMapped={false}
             />
           </mesh>
@@ -277,7 +319,7 @@ export function BrainModel({
             <mesh key={`wave-${index}`} position={[0, 0, 0]}>
               <ringGeometry args={[wave.scale, wave.scale + 0.08, 16]} /> {/* Reduced segments */}
               <meshBasicMaterial 
-                color={currentColor} 
+                color={currentColor.current} // Use the dynamic color
                 transparent 
                 opacity={wave.opacity}
                 side={THREE.DoubleSide}
@@ -293,7 +335,7 @@ export function BrainModel({
         position={[0, 0, 0]}
         distance={2.5}
         intensity={1 + pulseIntensity * 5}
-        color={currentColor}
+        color={currentColor.current} // Use the dynamic color
       />
     </Float>
   );
